@@ -1,17 +1,12 @@
-const fs = require('fs')
-const {
-  resolve
-} = require('path')
-const {
-  ApolloServer,
-  gql
-} = require('apollo-server-koa')
-const allCustomScalars = require('./scalars/index.js')
-const allCustomDirectives = require('./directives/index.js')
-const defaultPath = resolve(__dirname, '../components/')
-const typeDefFileName = 'schema.js'
-const resolverFileName = 'resolver.js'
-const resolver = require('../components/book/resolver')
+const fs = require('fs');
+const { resolve } = require('path');
+const { ApolloServer, gql } = require('apollo-server-koa');
+const allCustomScalars = require('./scalars/index.js');
+const allCustomDirectives = require('./directives/index.js');
+const defaultPath = resolve(__dirname, '../components/');
+const typeDefFileName = 'schema.js';
+const resolverFileName = 'resolver.js';
+const resolver = require('../components/book/resolver');
 
 /**
  * In this file, both schemas are merged with the help of a utility called linkSchema.
@@ -22,7 +17,7 @@ const resolver = require('../components/book/resolver')
  *
  * Reference: https://www.robinwieruch.de/graphql-apollo-server-tutorial/#apollo-server-resolvers
  */
-const linkSchema = gql `
+const linkSchema = gql`
   scalar Date
 
   directive @auth on FIELD_DEFINITION
@@ -38,75 +33,70 @@ const linkSchema = gql `
   type Subscription {
     _: Boolean
   }
-`
+`;
 
 function generateTypeDefsAndResolvers() {
-  const typeDefs = [linkSchema]
+  const typeDefs = [linkSchema];
   const resolvers = {
-    ...allCustomScalars
-  }
+    ...allCustomScalars,
+  };
 
   const _generateAllComponentRecursive = (path = defaultPath) => {
-    const list = fs.readdirSync(path)
+    const list = fs.readdirSync(path);
 
-    list.forEach(item => {
-      const resolverPath = path + '/' + item
-      const stat = fs.statSync(resolverPath)
-      const isDir = stat.isDirectory()
-      const isFile = stat.isFile()
+    list.forEach((item) => {
+      const resolverPath = path + '/' + item;
+      const stat = fs.statSync(resolverPath);
+      const isDir = stat.isDirectory();
+      const isFile = stat.isFile();
 
       if (isDir) {
-        _generateAllComponentRecursive(resolverPath)
+        _generateAllComponentRecursive(resolverPath);
       } else if (isFile && item === typeDefFileName) {
-        const {
-          schema
-        } = require(resolverPath)
+        const { schema } = require(resolverPath);
 
-        typeDefs.push(schema)
+        typeDefs.push(schema);
       } else if (isFile && item === resolverFileName) {
-        const resolversPerFile = require(resolverPath)
+        const resolversPerFile = require(resolverPath);
 
-        Object.keys(resolversPerFile).forEach(k => {
-          if (!resolvers[k]) resolvers[k] = {}
+        Object.keys(resolversPerFile).forEach((k) => {
+          if (!resolvers[k]) resolvers[k] = {};
           resolvers[k] = {
             ...resolvers[k],
-            ...resolversPerFile[k]
-          }
-        })
+            ...resolversPerFile[k],
+          };
+        });
       }
-    })
-  }
+    });
+  };
 
-  _generateAllComponentRecursive()
+  _generateAllComponentRecursive();
 
   return {
     typeDefs,
-    resolvers
-  }
+    resolvers,
+  };
 }
 
-const isProd = process.env.NODE_ENV === 'production'
-
+const isProd = process.env.NODE_ENV === 'production';
 
 const apolloServerOptions = {
   ...generateTypeDefsAndResolvers(),
-  formatError: error => ({
+  formatError: (error) => ({
     code: error.extensions.code,
-    message: error.message
+    message: error.message,
   }),
   schemaDirectives: {
-    ...allCustomDirectives
+    ...allCustomDirectives,
   },
-  context: ({
-    ctx
-  }) => ({
-    ctx
+  context: ({ ctx }) => ({
+    ctx,
   }),
   introspection: !isProd,
   playground: !isProd,
-  mocks: false
-}
+  mocks: false,
+};
 
 module.exports = new ApolloServer({
-  ...apolloServerOptions
-})
+  ...apolloServerOptions,
+});
